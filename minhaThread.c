@@ -1,10 +1,58 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
 #include <string.h>
 
 #define tamanhoVetor 37
 #define NTHREADS 2 
+
+#ifndef _MINHA_THREAD_
+#define _MINHA_THREAD_
+
+#include <pthread.h>
+
+typedef struct {
+	unsigned nrThreads;
+	pthread_t idThreads*;
+} minhaThread;
+
+minhaThread* criaThreads(unsigned nrThreads, void *(*funcao)(void *))
+{
+	minhaThread *threads = calloc(1, sizeof(minhaThread));
+	threads->nrThreads = nrThreads;
+	threads->idThreads = calloc(nrThreads, sizeof(pthread_t));
+	int i;
+	for (i=0; i<nrThreads; i++)
+        if (pthread_create(&(threads->idThreads[i]), NULL, funcao, NULL))
+            printf("--ERRO: pthread_create()\n"); exit(-4);
+}
+
+minhaThread* criaThreadsArg(unsigned nrThreads, void *(*funcao)(void *), void **arg)
+{
+	minhaThread *threads = calloc(1, sizeof(minhaThread));
+	threads->nrThreads = nrThreads;
+	threads->idThreads = calloc(nrThreads, sizeof(pthread_t));
+	int i;
+	for (i=0; i<nrThreads; i++)
+        if (pthread_create(&(threads->idThreads[i]), NULL, funcao, arg[i]))
+            printf("--ERRO: pthread_create()\n"); exit(-4);
+}
+
+void esperaThreads(minhaThread* threads)
+{
+	int i;
+    for (i=0; i<threads->nrThreads; i++)
+        if (pthread_join(threads->idThreads[i], NULL))
+            printf("--ERRO: pthread_join() \n"); exit(-6);
+        
+}
+
+void terminaThreads(minhaThread* threads)
+{
+	esperaThreads(threads);
+	free(threads->idThreads);
+	free(threads);
+}
+#endif
 
 typedef struct {
     int *vetor, tamanho, paridade;
@@ -46,36 +94,12 @@ int main (void) {
         vetor[i]=i+1;
         printf("Valor posicao %d do vetor: %d\n", i, vetor[i]);
     }
-/*    for (i=0; i<NTHREADS; i++) {
-        arg[i].vetor = vetor;
-        arg[i].tamanho = tamanhoVetor;
-        if (i%2 == 0) {
-            arg[i].paridade = 0;
-        }
-        if (i%2 == 1) {
-            arg[i].paridade = 1;
-        }
-    } */
+
     arg[0].vetor = arg[1].vetor = vetor;
     arg[0].tamanho = arg[1].tamanho = tamanhoVetor;
     arg[0].paridade = 0; arg[1].paridade = 1;
-/*    for (i=0; i<NTHREADS; i++) {
-        if (pthread_create(&tid_sistema[i], NULL, maisUm, (void *) &(arg[i]))) {
-            printf("--ERRO: pthread_create()\n"); exit(-4);
-        }
-    } */
-    if (pthread_create(&tid_sistema[0], NULL, maisUm, (void *) &(arg[0]))) {
-        printf("--ERRO: pthread_create()\n"); exit(-4);
-    }
-    if (pthread_create(&tid_sistema[1], NULL, maisUm, (void *) &(arg[1]))) {
-        printf("--ERRO: pthread_create()\n"); exit(-4);
-    }
-    for (i=0; i<NTHREADS; i++) {
-        if (pthread_join(tid_sistema[i], NULL)) {
-            printf("--ERRO: pthread_join() \n"); exit(-6);
-        }
-    }
-    for (i=0;i<tamanhoVetor;i++) {
+
+	for (i=0;i<tamanhoVetor;i++) {
         printf("Valor posicao %d do vetor, apos modificacao: %d\n", i, vetor[i]);
     }
     free(vetor);
